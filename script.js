@@ -273,13 +273,16 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const csvFileInput = document.getElementById('csvFileInput');
     if (csvFileInput) {
         csvFileInput.addEventListener('change', function(e) {
+            
+            alert("TEST: Filval detekterat! Försöker läsa filen..."); // <-- DEN NYA DIAGNOSTISKA RADEN
+            
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(e) {
                 parseCSV(e.target.result);
             };
-            reader.readAsText(file); 
+            reader.readAsText(file);
         });
     }
 
