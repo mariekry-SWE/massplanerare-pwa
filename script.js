@@ -1,14 +1,11 @@
-// Hela koden är nu insvept i en DOMContentLoaded listener 
 document.addEventListener('DOMContentLoaded', (event) => {
-    // START PÅ BEFINTLIG JAVASCRIPT LOGIK
-
+    // --- VARIABLER ---
     let inventory = [];
     let placedItems = [];
     let selectedItemIndex = -1;
     let isDraggingCanvasItem = false;
     let dragOffsetX, dragOffsetY;
 
-    // VARIABLER FÖR SKALNING/PANORERING
     let scale = 1.0; 
     let panX = 0;    
     let panY = 0;    
@@ -20,6 +17,143 @@ document.addEventListener('DOMContentLoaded', (event) => {
     const workspace = document.getElementById('workspace');
     const MARGIN = 50; 
 
+    // --- FUNKTIONER ---
+
+    // 1. Funktioner som KALLAS FRÅN HTML MÅSTE vara tillgängliga globalt, men definieras lokalt.
+    function updateCanvasSize() {
+        const w = parseInt(document.getElementById('boothW').value) || 300;
+        const d = parseInt(document.getElementById('boothD').value) || 200;
+        
+        canvas.width = w + MARGIN * 2;
+        canvas.height = d + MARGIN * 2;
+        
+        scale = 1.0;
+        panX = 0;
+        panY = 0;
+        drawBoard();
+    }
+    
+    function drawBoard() {
+        const w = parseInt(document.getElementById('boothW').value);
+        const d = parseInt(document.getElementById('boothD').value);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        ctx.save(); 
+
+        ctx.translate(panX, panY);
+        ctx.scale(scale, scale);
+        
+        const startX = MARGIN;
+        const startY = MARGIN;
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(startX, startY, w, d);
+        ctx.strokeStyle = "#eee";
+        ctx.beginPath();
+        for(let x=0; x<=w; x+=50) { ctx.moveTo(startX+x, startY); ctx.lineTo(startX+x, startY+d); }
+        for(let y=0; y<=d; y+=50) { ctx.moveTo(startX, startY+y); ctx.lineTo(startX+w, startY+y); }
+        ctx.stroke();
+
+        const config = document.getElementById('wallConfig').value;
+        ctx.lineWidth = 8 / scale; 
+        ctx.strokeStyle = "#333";
+        ctx.beginPath();
+        if(config !== 'island') { ctx.moveTo(startX, startY); ctx.lineTo(startX + w, startY); }
+        if(config === 'corner' || config === 'u_shape' || config === 'tunnel') { ctx.moveTo(startX, startY); ctx.lineTo(startX, startY + d); }
+        if(config === 'u_shape' || config === 'tunnel') { ctx.moveTo(startX + w, startY); ctx.lineTo(startX + w, startY + d); }
+        ctx.stroke();
+        ctx.lineWidth = 1 / scale;
+
+        placedItems.forEach((item, idx) => {
+            ctx.fillStyle = item.color || "#ccc";
+            ctx.fillRect(startX + item.x, startY + item.y, item.width, item.depth);
+            
+            ctx.strokeStyle = (idx === selectedItemIndex) ? "red" : "#000";
+            ctx.lineWidth = (idx === selectedItemIndex) ? 3 / scale : 1 / scale;
+            ctx.strokeRect(startX + item.x, startY + item.y, item.width, item.depth);
+            
+            ctx.fillStyle = "#000";
+            ctx.font = `${12 / scale}px Arial`;
+            let text = `${item.name.substring(0,10)} (${item.height}H)`;
+            ctx.fillText(text, startX + item.x + 2 / scale, startY + item.y + 12 / scale);
+        });
+        
+        ctx.strokeStyle = "#999";
+        ctx.setLineDash([5 / scale, 5 / scale]);
+        ctx.strokeRect(startX, startY, w, d);
+        ctx.setLineDash([]);
+        
+        ctx.restore(); 
+    }
+
+    function generateReport() {
+        const modal = document.getElementById('report-modal');
+        const detailDiv = document.getElementById('report-details');
+        const tableBody = document.querySelector('#report-table tbody');
+        
+        const boothW = document.getElementById('boothW').value;
+        const boothD = document.getElementById('boothD').value;
+        const notes = document.getElementById('eventNotes').value;
+        const wallType = document.getElementById('wallConfig').options[document.getElementById('wallConfig').selectedIndex].text;
+        
+        let maxHeight = 0;
+        let totalWeight = 0;
+
+        placedItems.forEach(item => {
+            if (item.height > maxHeight) maxHeight = item.height;
+        });
+
+        detailDiv.innerHTML = `
+            <p><strong>Monterstorlek:</strong> ${boothW} x ${boothD} cm</p>
+            <p><strong>Maxhöjd på monter (Används):</strong> ${maxHeight} cm</p>
+            <p><strong>Typ:</strong> ${wallType}</p>
+            <p><strong>Anteckningar:</strong><br>${notes}</p>
+        `;
+
+        tableBody.innerHTML = '';
+        const summary = {};
+        
+        placedItems.forEach(item => {
+            if(!summary[item.name]) summary[item.name] = { 
+                count: 0, 
+                weight: 0, 
+                el: item.needsEl,
+                width: item.width,
+                depth: item.depth,
+                height: item.height 
+            };
+            summary[item.name].count++;
+            summary[item.name].weight += item.weight;
+            totalWeight += item.weight;
+        });
+
+        for (const [name, data] of Object.entries(summary)) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${name}</td>
+                <td>${data.count}</td>
+                <td>${data.width}x${data.depth}</td>
+                <td>${data.height}</td>
+                <td>${data.weight} kg</td>
+                <td>${data.el ? 'JA' : '-'}</td>
+            `;
+            tableBody.appendChild(tr);
+        }
+        const trTot = document.createElement('tr');
+        trTot.style.fontWeight = 'bold';
+        trTot.innerHTML = `<td>TOTALT</td><td>${placedItems.length} st</td><td></td><td></td><td>${totalWeight} kg</td><td></td>`;
+        tableBody.appendChild(trTot);
+        modal.style.display = 'flex';
+    }
+
+    // 2. Vi exponerar de lokalt definierade funktionerna till den globala scope
+    //    så att HTML-elementen kan kalla dem (t.ex. onchange="updateCanvasSize()").
+    window.updateCanvasSize = updateCanvasSize;
+    window.drawBoard = drawBoard;
+    window.generateReport = generateReport;
+
+    // --- CSV HANTERING ---
     const csvFileInput = document.getElementById('csvFileInput');
     if (csvFileInput) {
         csvFileInput.addEventListener('change', function(e) {
@@ -33,7 +167,6 @@ document.addEventListener('DOMContentLoaded', (event) => {
         });
     }
 
-    // --- FUNKTION MED DEBUG ALERT ---
     function parseCSV(text) {
         inventory = [];
         const lines = text.split('\n');
@@ -47,11 +180,8 @@ document.addEventListener('DOMContentLoaded', (event) => {
 
         const headers = firstLine.toLowerCase().split(delimiter).map(h => h.trim().replace(/"/g, ''));
         
-        // ** <--- NY DEBUG ALERT HÄR! ---> **
-        alert(`DEBUG INFO:\nAvgränsare: ${delimiter}\nHittade Rubriker: ${headers.join(" | ")}\nAntal rader (inkl. rubrik): ${lines.length}`);
-        
-        // Fortsätter med rubrik-kontroll och parsing...
-        
+        // Debug Alert har tagits bort här
+
         const idxName = headers.findIndex(h => h.includes('vad'));
         const idxW = headers.findIndex(h => h.includes('längd') || h.includes('langd') || h.includes('bredd')); 
         const idxD = headers.findIndex(h => h.includes('djup'));
@@ -91,25 +221,187 @@ document.addEventListener('DOMContentLoaded', (event) => {
             });
         }
         renderInventoryList();
-        updateCanvasSize();
-    }
-
-    // ... (resten av funktionerna är oförändrade, t.ex. renderInventoryList, findInventoryIndexById, updateCanvasSize, drawBoard, screenToCanvas, event listeners, generateReport) ...
-
-    // Fick stryka ut den oförändrade koden här för att spara utrymme. 
-    // Använd koden från föregående svar och klistra in alerten.
-
-    // Du MÅSTE se till att resten av koden från ditt förra script.js-svar finns med!
-
-    // ...
-    // ...
-
-    window.generateReport = function() {
-        // ... (hela generateReport funktionen) ...
+        updateCanvasSize(); // Fungerar nu!
     }
     
-    // Slutligen, initiera canvas
+    // --- ÖVRIGA HJÄLPFUNKTIONER (oförändrade) ---
+    function renderInventoryList() { 
+        // ... (hela funktionen) ... 
+        const list = document.getElementById('inventory-list');
+        list.innerHTML = '';
+        
+        inventory.sort((a, b) => {
+            const aAvailable = a.usedQty < a.maxQty;
+            const bAvailable = b.usedQty < b.maxQty;
+            if (aAvailable && !bAvailable) return -1;
+            if (!aAvailable && bAvailable) return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        if(inventory.length === 0) {
+            list.innerHTML = '<li style="padding:10px;">Inga giltiga rader hittades i filen.</li>';
+            return;
+        }
+
+        inventory.forEach((item) => {
+            const isExhausted = item.usedQty >= item.maxQty;
+            const li = document.createElement('li');
+            li.className = `inventory-item ${isExhausted ? 'exhausted' : ''}`;
+            li.draggable = !isExhausted;
+            li.innerHTML = `
+                <div class="item-info">
+                    <strong>${item.name}</strong><br>
+                    ${item.width}x${item.depth}x${item.height} cm
+                </div>
+                <div class="item-count">${item.usedQty}/${item.maxQty}</div>
+            `;
+            
+            li.addEventListener('dragstart', (e) => {
+                if (isExhausted) { e.preventDefault(); return; }
+                e.dataTransfer.setData('text/plain', item.id);
+            });
+            list.appendChild(li);
+        });
+    }
+
+    function findInventoryIndexById(id) {
+        return inventory.findIndex(item => item.id == id);
+    }
+    
+    function screenToCanvas(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const rawX = clientX - rect.left;
+        const rawY = clientY - rect.top;
+        
+        const canvasX = (rawX - panX) / scale - MARGIN;
+        const canvasY = (rawY - panY) / scale - MARGIN;
+        
+        return { x: canvasX, y: canvasY };
+    }
+
+
+    // --- HÄR BÖRJAR LYSNARNA SOM ÄR OFÖRÄNDRADE IGEN ---
+    workspace.addEventListener('dragover', (e) => { e.preventDefault(); });
+    workspace.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const itemId = e.dataTransfer.getData('text/plain'); 
+
+        const inventoryIndex = findInventoryIndexById(itemId);
+        if (inventoryIndex === -1) return;
+
+        const template = inventory[inventoryIndex];
+        const { x: mouseX, y: mouseY } = screenToCanvas(e.clientX, e.clientY);
+
+        placedItems.push({
+            name: template.name,
+            width: template.width,
+            depth: template.depth,
+            height: template.height,
+            color: template.color,
+            x: mouseX - (template.width/2),
+            y: mouseY - (template.depth/2),
+            originalId: template.id,
+            needsEl: template.needsEl,
+            weight: template.weight
+        });
+
+        inventory[inventoryIndex].usedQty++;
+        renderInventoryList();
+        drawBoard();
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+        if (e.button !== 0) return; 
+
+        const { x: mx, y: my } = screenToCanvas(e.clientX, e.clientY);
+
+        selectedItemIndex = -1;
+        for(let i = placedItems.length - 1; i >= 0; i--) {
+            const item = placedItems[i];
+            if(mx >= item.x && mx <= item.x + item.width && my >= item.y && my <= item.y + item.depth) {
+                selectedItemIndex = i;
+                isDraggingCanvasItem = true;
+                dragOffsetX = mx - item.x;
+                dragOffsetY = my - item.y;
+                drawBoard();
+                return;
+            }
+        }
+        
+        isPanning = true;
+        lastPanX = e.clientX;
+        lastPanY = e.clientY;
+        workspace.classList.add('grabbing');
+        drawBoard();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if(isDraggingCanvasItem && selectedItemIndex !== -1) {
+            const { x: mx, y: my } = screenToCanvas(e.clientX, e.clientY);
+            const item = placedItems[selectedItemIndex];
+            item.x = mx - dragOffsetX;
+            item.y = my - dragOffsetY;
+            drawBoard();
+        } else if (isPanning) {
+            const dx = e.clientX - lastPanX;
+            const dy = e.clientY - lastPanY;
+            panX += dx;
+            panY += dy;
+            lastPanX = e.clientX;
+            lastPanY = e.clientY;
+            drawBoard();
+        }
+    });
+
+    window.addEventListener('mouseup', () => { 
+        isDraggingCanvasItem = false;
+        isPanning = false;
+        workspace.classList.remove('grabbing');
+    });
+
+    workspace.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const zoomFactor = 1.1;
+        const oldScale = scale;
+        
+        if (e.deltaY < 0) { 
+            scale = Math.min(scale * zoomFactor, 3.0);
+        } else { 
+            scale = Math.max(scale / zoomFactor, 0.2);
+        }
+
+        panX -= (canvas.width / 2) * (scale - oldScale);
+        panY -= (canvas.height / 2) * (scale - oldScale);
+
+        drawBoard();
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if((e.key === 'Delete' || e.key === 'Backspace') && selectedItemIndex !== -1) {
+            const item = placedItems[selectedItemIndex];
+            const invIndex = findInventoryIndexById(item.originalId);
+
+            if (invIndex !== -1) {
+                inventory[invIndex].usedQty--;
+            }
+            
+            placedItems.splice(selectedItemIndex, 1);
+            selectedItemIndex = -1;
+            renderInventoryList();
+            drawBoard();
+            e.preventDefault();
+        } 
+        
+        else if ((e.key === 'r' || e.key === 'R') && selectedItemIndex !== -1) {
+            const item = placedItems[selectedItemIndex];
+            [item.width, item.depth] = [item.depth, item.width];
+            drawBoard();
+            e.preventDefault();
+        }
+    });
+    // --- SLUT PÅ LYSNARE ---
+
+
+    // Slutligen, initiera canvas när DOM är laddad
     updateCanvasSize();
-    
-    // SLUT PÅ JAVASCRIPT LOGIK
 });
