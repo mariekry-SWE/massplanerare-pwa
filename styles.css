@@ -1,0 +1,112 @@
+/* Färgpalett: #1e3546 (Primary), #f1e9d4 (Background), #e17835 (Accent) */
+:root { 
+    --primary-dark: #1e3546; 
+    --background-light: #f1e9d4; 
+    --accent-orange: #e17835; 
+    --text-color: #1e3546;
+}
+
+body { 
+    font-family: 'Roboto', sans-serif; 
+    margin: 0; padding: 0; 
+    background: var(--background-light); 
+    display: flex; 
+    flex-direction: column; 
+    height: 100vh; 
+    color: var(--text-color);
+}
+
+/* Rubriker */
+h1, h2, h3 { 
+    font-family: 'League Spartan', sans-serif; 
+    color: var(--primary-dark);
+}
+
+/* Header */
+header { 
+    background: var(--primary-dark); 
+    color: white; 
+    padding: 1rem; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+}
+h1 { margin: 0; font-size: 1.5rem; color: white; }
+
+/* Layout */
+.container { display: flex; flex: 1; overflow: hidden; }
+
+/* Sidebar (Settings & Inventory) */
+.sidebar { 
+    width: 350px; 
+    background: white; 
+    border-right: 3px solid var(--accent-orange); 
+    display: flex; 
+    flex-direction: column; 
+    overflow-y: auto; 
+    box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    flex-shrink: 0;
+}
+.panel { padding: 15px; border-bottom: 1px solid #ddd; }
+.panel h3 { margin-top: 0; font-size: 1.1rem; }
+
+label { display: block; margin-bottom: 5px; font-size: 0.9rem; font-weight: bold; }
+input, select, textarea { width: 100%; padding: 8px; margin-bottom: 10px; border: 1px solid var(--primary-dark); border-radius: 4px; box-sizing: border-box; }
+button { background: var(--accent-orange); color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; transition: background 0.3s; }
+button:hover { background: #b35e26; }
+
+/* Inventory List */
+#inventory-list { list-style: none; padding: 0; margin: 0; }
+.inventory-item { 
+    background: var(--background-light); 
+    border: 1px solid var(--primary-dark); 
+    padding: 10px; margin-bottom: 5px; 
+    cursor: grab; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    border-radius: 4px; 
+    user-select: none;
+    transition: opacity 0.3s;
+}
+.inventory-item.exhausted {
+    opacity: 0.5;
+    cursor: not-allowed;
+    order: 1; /* Flyttar till slutet av listan */
+    background: #eee;
+}
+.inventory-item:not(.exhausted):hover { background: #e0d8c5; border-color: var(--accent-orange); }
+.item-info { font-size: 0.85rem; }
+.item-count { 
+    background: var(--primary-dark); 
+    color: white; 
+    padding: 2px 6px; 
+    border-radius: 10px; 
+    font-size: 0.7rem; 
+}
+
+/* Canvas Area */
+.workspace { 
+    flex: 1; 
+    background: var(--background-light); 
+    position: relative; 
+    overflow: hidden; 
+    display: flex; 
+    justify-content: center; 
+    align-items: center;
+    cursor: grab;
+}
+.workspace.grabbing { cursor: grabbing; }
+
+canvas { 
+    background: white; 
+}
+.overlay-text { position: absolute; top: 10px; left: 10px; background: rgba(255,255,255,0.8); padding: 5px 10px; border-radius: 4px; pointer-events: none; font-size: 0.8rem; }
+.controls-hint { position: absolute; bottom: 10px; right: 10px; background: var(--primary-dark); color: white; padding: 5px 10px; border-radius: 4px; font-size: 0.75rem; }
+
+/* Report Modal (oförändrad) */
+#report-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 100; justify-content: center; align-items: center; }
+.modal-content { background: white; padding: 20px; width: 700px; max-height: 80vh; overflow-y: auto; border-radius: 8px; }
+table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+th, td { border: 1px solid #ddd; padding: 8px; text-align: left; font-size: 0.9rem; }
+th { background: #f2f2f2; }

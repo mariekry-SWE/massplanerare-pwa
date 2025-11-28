@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monterplaneraren 3.0</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@600;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+    <h1>📦 Monterplaneraren</h1>
+    <div>
+        <button onclick="generateReport()" style="width: auto; background: #27ae60;">Visa Packlista & Rapport</button>
+    </div>
+</header>
+
+<div class="container">
+    <div class="sidebar">
+        <div class="panel">
+            <h3>1. Monterinställningar</h3>
+            <div style="display:flex; gap:10px;">
+                <div><label>Bredd (cm)</label><input type="number" id="boothW" value="300" onchange="updateCanvasSize()"></div>
+                <div><label>Djup (cm)</label><input type="number" id="boothD" value="200" onchange="updateCanvasSize()"></div>
+            </div>
+            <label>Väggar</label>
+            <select id="wallConfig" onchange="drawBoard()">
+                <option value="corner">Hörn (Bak + Vänster)</option>
+                <option value="u_shape">U-Form (Bak + Sidor)</option>
+                <option value="island">Öppen (Inga väggar)</option>
+                <option value="tunnel">Tunnel (Bara sidor)</option>
+            </select>
+        </div>
+
+        <div class="panel">
+            <h3>2. Information om eventet</h3>
+            <label>Instruktioner / Idéer (för extern AI)</label>
+            <textarea id="eventNotes" rows="3" placeholder="T.ex. Tema: Futurism, belysning i gult, mingelyta fram, tyst mötesrum bak."></textarea>
+        </div>
+
+        <div class="panel">
+            <h3>3. Lager (CSV)</h3>
+            <input type="file" id="csvFileInput" accept=".csv" />
+        </div>
+
+        <div class="panel" style="flex:1; overflow-y:auto;">
+            <h3>Dina Möbler (Dra in)</h3>
+            <ul id="inventory-list">
+                <li style="padding:10px; color:#666; font-style:italic;">Ladda upp en CSV-fil för att se möbler här.</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="workspace" id="workspace">
+        <div class="overlay-text">Skala: 1px = 1cm (i 100% zoom)</div>
+        <div class="controls-hint">
+            **Kontroller:** <br> Rulla/Scroll = Zooma
+            <br> Dra & Släpp = Flytta möbel
+            <br> Håll Mus + Dra = Panorera
+            <br> **R** = Rotera (90°)
+            <br> **Delete/Backspace** = Ta bort vald möbel
+        </div>
+        <canvas id="planCanvas"></canvas>
+    </div>
+</div>
+
+<div id="report-modal">
+    <div class="modal-content">
+        <h2>Planeringsrapport</h2>
+        <div id="report-details"></div>
+        <h3>Packlista</h3>
+        <table id="report-table">
+            <thead>
+                <tr><th>Vad</th><th>Antal</th><th>L/D (cm)</th><th>Höjd (cm)</th><th>Vikt (kg)</th><th>El?</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div style="margin-top:20px; text-align:right;">
+            <button onclick="document.getElementById('report-modal').style.display='none'">Stäng</button>
+            <button onclick="window.print()" style="background:#27ae60;">Skriv ut</button>
+        </div>
+    </div>
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>
